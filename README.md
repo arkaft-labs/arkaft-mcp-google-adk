@@ -16,7 +16,7 @@ This MCP acts as an intelligent assistant for developers working with Google ADK
 ### MCP Tools
 
 - `adk_query` - Query Google ADK documentation and concepts with current version awareness
-- `review_rust_file` - Review Rust files for translation needs, ADK compliance, and architectural improvements  
+- `review_rust_file` - Review Rust files for translation needs, ADK compliance, and architectural improvements
 - `validate_architecture` - Validate architectural patterns against official Google ADK best practices
 - `get_best_practices` - Get official Google ADK best practices for specific scenarios
 
@@ -204,7 +204,7 @@ The server will start and be ready to accept MCP connections via stdio transport
 
 ## Project Structure
 
-```
+```text
 arkaft-mcp-google-adk/
 ├── Cargo.toml              # Project configuration with rmcp SDK and dependencies
 ├── src/
