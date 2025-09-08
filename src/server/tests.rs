@@ -438,3 +438,520 @@ mod tests {
                    text.to_lowercase().contains("practice"));
         }
     }
+
+    // Comprehensive tests for validate_architecture functionality
+    mod validate_architecture_tests {
+        use crate::server::handlers::{handle_validate_architecture, ValidateArchitectureParams};
+        use serde_json::json;
+
+        #[tokio::test]
+        async fn test_validate_architecture_valid_parameters() {
+            // Test with valid description parameter
+            let params = json!({
+                "description": "Microservices architecture using async patterns and proper error handling"
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            assert!(response.is_object());
+            assert!(response["content"].is_array());
+            assert!(response["content"][0]["type"] == "text");
+            assert!(response["content"][0]["text"].is_string());
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_with_code_snippets() {
+            // Test with description and code snippets
+            let params = json!({
+                "description": "REST API architecture",
+                "code_snippets": [
+                    "fn main() { panic!(\"error\"); }",
+                    "let result = operation().unwrap();"
+                ]
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should detect issues with panic! and unwrap()
+            assert!(text.contains("panic") || text.contains("unwrap") || text.contains("finding"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_with_version() {
+            // Test with specific ADK version
+            let params = json!({
+                "description": "Standard ADK application architecture",
+                "version": "1.0.0"
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            assert!(text.contains("1.0.0") || text.contains("version") || text.contains("Compliance"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_empty_description() {
+            // Test with empty description
+            let params = json!({
+                "description": ""
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("empty"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_whitespace_description() {
+            // Test with whitespace-only description
+            let params = json!({
+                "description": "   \t\n   "
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("empty"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_missing_description() {
+            // Test with missing description parameter
+            let params = json!({
+                "code_snippets": ["fn main() {}"]
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("Invalid parameters"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_compliance_scoring() {
+            // Test that response includes compliance scoring
+            let params = json!({
+                "description": "Well-designed ADK application with proper async patterns and error handling"
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain compliance information
+            assert!(text.contains("Compliance") || 
+                   text.contains("Score") ||
+                   text.contains("COMPLIANT"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_findings_and_recommendations() {
+            // Test that problematic architecture generates findings and recommendations
+            let params = json!({
+                "description": "Architecture with blocking operations and panic-based error handling",
+                "code_snippets": [
+                    "panic!(\"This will crash\")",
+                    "std::thread::sleep(Duration::from_secs(10))"
+                ]
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain findings and recommendations
+            assert!(text.contains("Finding") || 
+                   text.contains("Recommendation") ||
+                   text.contains("Suggested Fix") ||
+                   text.contains("🔴") || text.contains("🟡"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_official_documentation_refs() {
+            // Test that response includes official documentation references
+            let params = json!({
+                "description": "Standard microservices architecture"
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain official documentation references
+            assert!(text.contains("google.github.io/adk-docs") || 
+                   text.contains("Official Documentation") ||
+                   text.contains("Reference"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_parameter_struct() {
+            // Test parameter validation with ValidateArchitectureParams struct
+            let valid_params = ValidateArchitectureParams {
+                description: "Valid architecture description".to_string(),
+                code_snippets: Some(vec!["fn main() {}".to_string()]),
+                version: Some("1.0.0".to_string()),
+            };
+            
+            assert!(!valid_params.description.is_empty());
+            assert!(valid_params.code_snippets.is_some());
+            assert!(valid_params.version.is_some());
+            
+            let params_json = serde_json::to_value(&valid_params).unwrap();
+            let result = handle_validate_architecture(params_json).await;
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_adk_patterns() {
+            // Test validation against specific ADK patterns
+            let good_patterns = vec![
+                "Async/await based architecture with proper error handling",
+                "Microservices using Result types for error propagation",
+                "Event-driven architecture with non-blocking operations"
+            ];
+            
+            for pattern in good_patterns {
+                let params = json!({
+                    "description": pattern
+                });
+                
+                let result = handle_validate_architecture(params).await;
+                assert!(result.is_ok(), "Failed for pattern: {}", pattern);
+                
+                let response = result.unwrap();
+                let text = response["content"][0]["text"].as_str().unwrap();
+                assert!(!text.is_empty(), "Empty response for pattern: {}", pattern);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_anti_patterns() {
+            // Test detection of anti-patterns
+            let anti_patterns = vec![
+                "Architecture with blocking operations in async context",
+                "System using panic! for error handling",
+                "Non-standard project structure ignoring ADK guidelines"
+            ];
+            
+            for pattern in anti_patterns {
+                let params = json!({
+                    "description": pattern
+                });
+                
+                let result = handle_validate_architecture(params).await;
+                assert!(result.is_ok(), "Failed for anti-pattern: {}", pattern);
+                
+                let response = result.unwrap();
+                let text = response["content"][0]["text"].as_str().unwrap();
+                
+                // Should detect issues and provide recommendations
+                assert!(text.contains("Finding") || 
+                       text.contains("Recommendation") ||
+                       text.contains("improvement") ||
+                       text.contains("issue"), 
+                       "No issues detected for anti-pattern: {}", pattern);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_response_structure() {
+            // Test MCP response structure compliance
+            let params = json!({
+                "description": "Standard web application architecture"
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            
+            // Verify MCP response structure
+            assert!(response.is_object());
+            assert!(response.get("content").is_some());
+            assert!(response["content"].is_array());
+            assert!(!response["content"].as_array().unwrap().is_empty());
+            
+            let content_item = &response["content"][0];
+            assert!(content_item.get("type").is_some());
+            assert_eq!(content_item["type"], "text");
+            assert!(content_item.get("text").is_some());
+            assert!(content_item["text"].is_string());
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_error_handling_validation() {
+            // Test specific validation of error handling patterns
+            let params = json!({
+                "description": "Application architecture",
+                "code_snippets": [
+                    "fn process() -> Result<String, Error> { Ok(\"success\".to_string()) }",
+                    "fn bad_process() { panic!(\"This is bad\"); }"
+                ]
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should recognize good Result pattern and flag panic usage
+            assert!(text.contains("panic") || text.contains("error handling"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_architecture_async_pattern_validation() {
+            // Test validation of async patterns
+            let params = json!({
+                "description": "Async-based architecture with non-blocking operations"
+            });
+            
+            let result = handle_validate_architecture(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should provide validation results for async patterns
+            assert!(!text.is_empty());
+            assert!(text.contains("async") || 
+                   text.contains("Compliance") ||
+                   text.contains("architecture"));
+        }
+    }
+
+    // Comprehensive tests for get_best_practices functionality  
+    mod get_best_practices_tests {
+        use crate::server::handlers::{handle_get_best_practices, GetBestPracticesParams};
+        use serde_json::json;
+
+        #[tokio::test]
+        async fn test_get_best_practices_valid_parameters() {
+            // Test with valid scenario parameter
+            let params = json!({
+                "scenario": "API development"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            assert!(response.is_object());
+            assert!(response["content"].is_array());
+            assert!(response["content"][0]["type"] == "text");
+            assert!(response["content"][0]["text"].is_string());
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_with_category() {
+            // Test with scenario and category parameters
+            let params = json!({
+                "scenario": "web development",
+                "category": "architecture"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain category-specific information
+            assert!(text.contains("architecture") || text.contains("Best Practices"));
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_with_version() {
+            // Test with specific ADK version
+            let params = json!({
+                "scenario": "application setup",
+                "version": "1.0.0"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            assert!(text.contains("1.0.0") || text.contains("Version"));
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_empty_scenario() {
+            // Test with empty scenario
+            let params = json!({
+                "scenario": ""
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("empty"));
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_missing_scenario() {
+            // Test with missing scenario parameter
+            let params = json!({
+                "category": "performance"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("Invalid parameters"));
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_response_structure() {
+            // Test MCP response structure compliance
+            let params = json!({
+                "scenario": "microservices development"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            
+            // Verify MCP response structure
+            assert!(response.is_object());
+            assert!(response.get("content").is_some());
+            assert!(response["content"].is_array());
+            assert!(!response["content"].as_array().unwrap().is_empty());
+            
+            let content_item = &response["content"][0];
+            assert!(content_item.get("type").is_some());
+            assert_eq!(content_item["type"], "text");
+            assert!(content_item.get("text").is_some());
+            assert!(content_item["text"].is_string());
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_official_documentation() {
+            // Test that response includes official documentation references
+            let params = json!({
+                "scenario": "ADK project setup"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain official documentation references
+            assert!(text.contains("google.github.io/adk-docs") || 
+                   text.contains("Official Documentation") ||
+                   text.contains("Reference"));
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_parameter_struct() {
+            // Test parameter validation with GetBestPracticesParams struct
+            let valid_params = GetBestPracticesParams {
+                scenario: "Valid scenario".to_string(),
+                category: Some("architecture".to_string()),
+                version: Some("1.0.0".to_string()),
+            };
+            
+            assert!(!valid_params.scenario.is_empty());
+            assert!(valid_params.category.is_some());
+            assert!(valid_params.version.is_some());
+            
+            let params_json = serde_json::to_value(&valid_params).unwrap();
+            let result = handle_get_best_practices(params_json).await;
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_categories() {
+            // Test different categories
+            let categories = vec![
+                "architecture",
+                "performance", 
+                "security",
+                "testing"
+            ];
+            
+            for category in categories {
+                let params = json!({
+                    "scenario": "development",
+                    "category": category
+                });
+                
+                let result = handle_get_best_practices(params).await;
+                assert!(result.is_ok(), "Failed for category: {}", category);
+                
+                let response = result.unwrap();
+                let text = response["content"][0]["text"].as_str().unwrap();
+                assert!(!text.is_empty(), "Empty response for category: {}", category);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_scenarios() {
+            // Test different development scenarios
+            let scenarios = vec![
+                "API development",
+                "microservices architecture",
+                "web application",
+                "data processing",
+                "authentication system"
+            ];
+            
+            for scenario in scenarios {
+                let params = json!({
+                    "scenario": scenario
+                });
+                
+                let result = handle_get_best_practices(params).await;
+                assert!(result.is_ok(), "Failed for scenario: {}", scenario);
+                
+                let response = result.unwrap();
+                let text = response["content"][0]["text"].as_str().unwrap();
+                assert!(!text.is_empty(), "Empty response for scenario: {}", scenario);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_get_best_practices_implementation_patterns() {
+            // Test that response includes implementation patterns
+            let params = json!({
+                "scenario": "application architecture"
+            });
+            
+            let result = handle_get_best_practices(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain patterns or practices information
+            assert!(text.contains("Pattern") || 
+                   text.contains("Practice") ||
+                   text.contains("Implementation") ||
+                   text.contains("Example"));
+        }
+    }

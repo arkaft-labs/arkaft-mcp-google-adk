@@ -5,6 +5,10 @@
 
 pub mod adk_knowledge;
 pub mod documentation;
+pub mod best_practices;
+
+#[cfg(test)]
+mod best_practices_tests;
 
 use adk_knowledge::{AdkKnowledgeBase, VersionConfig};
 use documentation::{DocumentationReferenceGenerator, format_documentation_response, format_concept_response, generate_comprehensive_links};

@@ -9,6 +9,7 @@ pub struct RustCodeAnalyzer {
     /// Parsed AST of the Rust file
     ast: Option<File>,
     /// Original source code
+    #[allow(dead_code)]
     source: String,
     /// Line-indexed source for analysis
     lines: Vec<String>,
