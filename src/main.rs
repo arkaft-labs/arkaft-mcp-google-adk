@@ -21,9 +21,13 @@ async fn main() -> Result<()> {
     info!("Arkaft Google ADK MCP Server '{}' v{} foundation established", name, version);
     info!("Server structure ready for MCP protocol implementation");
     
-    // Keep the server running
+    // Keep the server running until Ctrl+C
     tokio::signal::ctrl_c().await?;
-    info!("Shutting down server");
+    info!("Received shutdown signal");
+    
+    // Graceful shutdown
+    server.shutdown().await?;
+    info!("Server shutdown completed");
     
     Ok(())
 }
