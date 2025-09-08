@@ -1,24 +1,58 @@
 //! MCP request handlers for Google ADK tools
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tracing::info;
+use tracing::{info, warn, error};
+use crate::expert::DocumentationExpert;
 
-/// Handle adk_query tool calls
-pub async fn handle_adk_query(_params: Value) -> Result<Value> {
-    info!("Handling adk_query request");
+/// Parameters for adk_query tool
+#[derive(Debug, Deserialize, Serialize)]
+pub struct AdkQueryParams {
+    /// The question or topic to search in ADK documentation
+    pub query: String,
+    /// Optional specific ADK version to reference (defaults to latest)
+    pub version: Option<String>,
+}
+
+/// Handle adk_query tool calls with comprehensive ADK documentation expertise
+pub async fn handle_adk_query(params: Value) -> Result<Value> {
+    info!("Handling adk_query request with params: {:?}", params);
     
-    // TODO: Implement ADK documentation query logic
-    // This will be implemented when the Documentation Expert System is built
+    // Parse and validate parameters
+    let query_params: AdkQueryParams = serde_json::from_value(params)
+        .map_err(|e| {
+            warn!("Failed to parse adk_query parameters: {}", e);
+            anyhow!("Invalid parameters for adk_query. Expected 'query' (string) and optional 'version' (string). Error: {}", e)
+        })?;
     
-    Ok(serde_json::json!({
-        "content": [
-            {
-                "type": "text",
-                "text": "ADK query functionality is currently being implemented. Please check back soon for comprehensive Google ADK documentation expertise."
-            }
-        ]
-    }))
+    // Validate query parameter
+    if query_params.query.trim().is_empty() {
+        warn!("Empty query provided to adk_query");
+        return Err(anyhow!("Query parameter cannot be empty"));
+    }
+    
+    // Create Documentation Expert instance
+    let expert = DocumentationExpert::new();
+    
+    // Process the query with version-specific information retrieval
+    match expert.query_documentation(&query_params.query, query_params.version.as_deref()).await {
+        Ok(response) => {
+            info!("Successfully processed adk_query for: {}", query_params.query);
+            Ok(serde_json::json!({
+                "content": [
+                    {
+                        "type": "text",
+                        "text": response
+                    }
+                ]
+            }))
+        }
+        Err(e) => {
+            error!("Error processing adk_query: {}", e);
+            Err(anyhow!("Failed to process ADK documentation query: {}", e))
+        }
+    }
 }
 
 /// Handle review_rust_file tool calls

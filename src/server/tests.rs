@@ -205,3 +205,236 @@ mod tests {
         assert!(!config.log_level.is_empty());
     }
 }
+  
+  // Comprehensive tests for adk_query functionality
+    mod adk_query_tests {
+        use crate::server::handlers::{handle_adk_query, AdkQueryParams};
+        use serde_json::json;
+
+        #[tokio::test]
+        async fn test_adk_query_valid_parameters() {
+            // Test with valid query parameter
+            let params = json!({
+                "query": "What is Google ADK?"
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            assert!(response.is_object());
+            assert!(response["content"].is_array());
+            assert!(response["content"][0]["type"] == "text");
+            assert!(response["content"][0]["text"].is_string());
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_with_version() {
+            // Test with query and version parameters
+            let params = json!({
+                "query": "ADK best practices",
+                "version": "1.0.0"
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            assert!(response.is_object());
+            assert!(response["content"].is_array());
+            
+            // Check that response contains version information
+            let text = response["content"][0]["text"].as_str().unwrap();
+            assert!(text.contains("1.0.0") || text.contains("version"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_empty_query() {
+            // Test with empty query
+            let params = json!({
+                "query": ""
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("empty"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_whitespace_only_query() {
+            // Test with whitespace-only query
+            let params = json!({
+                "query": "   \t\n   "
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("empty"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_missing_query_parameter() {
+            // Test with missing query parameter
+            let params = json!({
+                "version": "1.0.0"
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("Invalid parameters"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_invalid_json() {
+            // Test with invalid parameter structure
+            let params = json!({
+                "query": 123  // Should be string, not number
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_err());
+            
+            let error = result.unwrap_err();
+            assert!(error.to_string().contains("Invalid parameters"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_response_structure() {
+            // Test response structure compliance
+            let params = json!({
+                "query": "Google ADK architecture patterns"
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            
+            // Verify MCP response structure
+            assert!(response.is_object());
+            assert!(response.get("content").is_some());
+            assert!(response["content"].is_array());
+            assert!(!response["content"].as_array().unwrap().is_empty());
+            
+            let content_item = &response["content"][0];
+            assert!(content_item.get("type").is_some());
+            assert_eq!(content_item["type"], "text");
+            assert!(content_item.get("text").is_some());
+            assert!(content_item["text"].is_string());
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_official_documentation_references() {
+            // Test that responses include official documentation references
+            let params = json!({
+                "query": "ADK quickstart guide"
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain official Google ADK documentation references
+            assert!(text.contains("google.github.io/adk-docs") || 
+                   text.contains("Official References") ||
+                   text.contains("quickstart"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_version_specific_information() {
+            // Test version-specific information retrieval
+            let params_latest = json!({
+                "query": "ADK features",
+                "version": "latest"
+            });
+            
+            let params_specific = json!({
+                "query": "ADK features", 
+                "version": "1.0.0"
+            });
+            
+            let result_latest = handle_adk_query(params_latest).await;
+            let result_specific = handle_adk_query(params_specific).await;
+            
+            assert!(result_latest.is_ok());
+            assert!(result_specific.is_ok());
+            
+            // Both should succeed and contain version information
+            let response_latest = result_latest.unwrap();
+            let text_latest = response_latest["content"][0]["text"].as_str().unwrap();
+            
+            let response_specific = result_specific.unwrap();
+            let text_specific = response_specific["content"][0]["text"].as_str().unwrap();
+            
+            assert!(text_latest.contains("latest") || text_latest.contains("version"));
+            assert!(text_specific.contains("1.0.0") || text_specific.contains("version"));
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_parameter_validation() {
+            // Test parameter validation with AdkQueryParams struct
+            let valid_params = AdkQueryParams {
+                query: "Valid query".to_string(),
+                version: Some("1.0.0".to_string()),
+            };
+            
+            assert!(!valid_params.query.is_empty());
+            assert!(valid_params.version.is_some());
+            
+            let params_json = serde_json::to_value(&valid_params).unwrap();
+            let result = handle_adk_query(params_json).await;
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_concept_search() {
+            // Test searching for specific ADK concepts
+            let concept_queries = vec![
+                "application development kit",
+                "best practices",
+                "architecture patterns",
+                "ADK setup"
+            ];
+            
+            for query in concept_queries {
+                let params = json!({
+                    "query": query
+                });
+                
+                let result = handle_adk_query(params).await;
+                assert!(result.is_ok(), "Failed for query: {}", query);
+                
+                let response = result.unwrap();
+                let text = response["content"][0]["text"].as_str().unwrap();
+                assert!(!text.is_empty(), "Empty response for query: {}", query);
+            }
+        }
+
+        #[tokio::test]
+        async fn test_adk_query_implementation_guidance() {
+            // Test that queries return implementation guidance
+            let params = json!({
+                "query": "How to implement ADK patterns?"
+            });
+            
+            let result = handle_adk_query(params).await;
+            assert!(result.is_ok());
+            
+            let response = result.unwrap();
+            let text = response["content"][0]["text"].as_str().unwrap();
+            
+            // Should contain guidance-related keywords
+            assert!(text.to_lowercase().contains("implementation") ||
+                   text.to_lowercase().contains("guidance") ||
+                   text.to_lowercase().contains("pattern") ||
+                   text.to_lowercase().contains("practice"));
+        }
+    }
