@@ -55,21 +55,68 @@ pub async fn handle_adk_query(params: Value) -> Result<Value> {
     }
 }
 
+/// Parameters for review_rust_file tool
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ReviewRustFileParams {
+    /// Path to the .rs file being reviewed
+    pub file_path: String,
+    /// Content of the Rust file to analyze
+    pub file_content: String,
+}
+
 /// Handle review_rust_file tool calls
-pub async fn handle_review_rust_file(_params: Value) -> Result<Value> {
-    info!("Handling review_rust_file request");
+pub async fn handle_review_rust_file(params: Value) -> Result<Value> {
+    info!("Handling review_rust_file request with params: {:?}", params);
     
-    // TODO: Implement Rust file review logic
-    // This will be implemented when the Code Review Engine is built
+    // Parse and validate parameters
+    let review_params: ReviewRustFileParams = serde_json::from_value(params)
+        .map_err(|e| {
+            warn!("Failed to parse review_rust_file parameters: {}", e);
+            anyhow!("Invalid parameters for review_rust_file. Expected 'file_path' (string) and 'file_content' (string). Error: {}", e)
+        })?;
     
-    Ok(serde_json::json!({
-        "content": [
-            {
-                "type": "text", 
-                "text": "Rust file review functionality is currently being implemented. Please check back soon for comprehensive .rs file analysis and translation suggestions."
-            }
-        ]
-    }))
+    // Validate parameters
+    if review_params.file_path.trim().is_empty() {
+        warn!("Empty file_path provided to review_rust_file");
+        return Err(anyhow!("file_path parameter cannot be empty"));
+    }
+    
+    if review_params.file_content.trim().is_empty() {
+        warn!("Empty file_content provided to review_rust_file");
+        return Err(anyhow!("file_content parameter cannot be empty"));
+    }
+    
+    // Validate that it's a Rust file
+    if !review_params.file_path.ends_with(".rs") {
+        warn!("Non-Rust file provided to review_rust_file: {}", review_params.file_path);
+        return Err(anyhow!("Only .rs files can be reviewed. Provided file: {}", review_params.file_path));
+    }
+    
+    // Create Code Review Engine instance
+    let review_engine = crate::review::CodeReviewEngine::new();
+    
+    // Perform comprehensive file analysis
+    match review_engine.review_file(&review_params.file_path, &review_params.file_content).await {
+        Ok(review_result) => {
+            info!("Successfully completed review for file: {}", review_params.file_path);
+            
+            // Format the review results using the suggestions module
+            let formatted_response = crate::review::suggestions::format_review_suggestions(&review_result);
+            
+            Ok(serde_json::json!({
+                "content": [
+                    {
+                        "type": "text",
+                        "text": formatted_response
+                    }
+                ]
+            }))
+        }
+        Err(e) => {
+            error!("Error reviewing Rust file {}: {}", review_params.file_path, e);
+            Err(anyhow!("Failed to review Rust file: {}", e))
+        }
+    }
 }
 
 /// Handle validate_architecture tool calls

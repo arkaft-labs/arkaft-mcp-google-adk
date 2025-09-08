@@ -25,5 +25,5 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Additional utilities for Rust code parsing and analysis
-syn = "2.0"  # For Rust code parsing in review engine
+syn = { version = "2.0", features = ["full", "parsing"] }  # For Rust code parsing in review engine
 quote = "1.0"  # For code generation and suggestions

@@ -5,6 +5,9 @@ pub mod handlers;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod integration_tests;
+
 use anyhow::Result;
 use serde_json::{json, Value};
 use tracing::{info, error, debug};

@@ -6,6 +6,9 @@
 pub mod analyzer;
 pub mod suggestions;
 
+#[cfg(test)]
+mod tests;
+
 use anyhow::Result;
 
 /// Code Review Engine for analyzing Rust files
@@ -97,21 +100,40 @@ impl CodeReviewEngine {
     }
     
     /// Review a Rust file for improvements
-    pub async fn review_file(&self, _file_path: &str, _file_content: &str) -> Result<ReviewResult> {
-        // TODO: Implement comprehensive file analysis
-        // This will include:
-        // - AST parsing for code structure analysis
-        // - Translation opportunity detection
-        // - Architectural pattern recognition
-        // - ADK compliance checking
-        // - File organization analysis
+    pub async fn review_file(&self, file_path: &str, file_content: &str) -> Result<ReviewResult> {
+        use crate::review::analyzer::{
+            analyze_translation_opportunities,
+            analyze_architectural_patterns,
+            analyze_adk_compliance,
+            analyze_file_organization,
+        };
         
-        Ok(ReviewResult {
+        let mut result = ReviewResult {
             translation_opportunities: Vec::new(),
             architectural_improvements: Vec::new(),
             compliance_issues: Vec::new(),
             organization_suggestions: Vec::new(),
-        })
+        };
+        
+        // Analyze translation opportunities if enabled
+        if self.config.detect_translations {
+            result.translation_opportunities = analyze_translation_opportunities(file_content)?;
+        }
+        
+        // Analyze architectural patterns if enabled
+        if self.config.check_architecture {
+            result.architectural_improvements = analyze_architectural_patterns(file_content)?;
+        }
+        
+        // Analyze ADK compliance if enabled
+        if self.config.validate_adk_compliance {
+            result.compliance_issues = analyze_adk_compliance(file_content)?;
+        }
+        
+        // Always analyze file organization
+        result.organization_suggestions = analyze_file_organization(file_path, file_content)?;
+        
+        Ok(result)
     }
 }
 
