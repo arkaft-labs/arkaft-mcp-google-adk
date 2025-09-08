@@ -71,7 +71,8 @@ mod tests {
         let server = ArkaftMcpServer::new();
         let tools = server.create_tool_definitions().unwrap();
         
-        let handler = ToolHandler::new(tools.clone());
+        let metrics = std::sync::Arc::new(crate::utils::ServerMetrics::new());
+        let handler = ToolHandler::new(tools.clone(), metrics);
         
         // Test handler has correct number of tools
         assert_eq!(handler.get_tools().len(), 4);
@@ -81,7 +82,8 @@ mod tests {
     async fn test_tool_handler_adk_query() {
         let server = ArkaftMcpServer::new();
         let tools = server.create_tool_definitions().unwrap();
-        let handler = ToolHandler::new(tools);
+        let metrics = std::sync::Arc::new(crate::utils::ServerMetrics::new());
+        let handler = ToolHandler::new(tools, metrics);
         
         // Test adk_query tool call
         let args = json!({
@@ -100,7 +102,8 @@ mod tests {
     async fn test_tool_handler_review_rust_file() {
         let server = ArkaftMcpServer::new();
         let tools = server.create_tool_definitions().unwrap();
-        let handler = ToolHandler::new(tools);
+        let metrics = std::sync::Arc::new(crate::utils::ServerMetrics::new());
+        let handler = ToolHandler::new(tools, metrics);
         
         // Test review_rust_file tool call
         let args = json!({
@@ -120,7 +123,8 @@ mod tests {
     async fn test_tool_handler_validate_architecture() {
         let server = ArkaftMcpServer::new();
         let tools = server.create_tool_definitions().unwrap();
-        let handler = ToolHandler::new(tools);
+        let metrics = std::sync::Arc::new(crate::utils::ServerMetrics::new());
+        let handler = ToolHandler::new(tools, metrics);
         
         // Test validate_architecture tool call
         let args = json!({
@@ -139,7 +143,8 @@ mod tests {
     async fn test_tool_handler_get_best_practices() {
         let server = ArkaftMcpServer::new();
         let tools = server.create_tool_definitions().unwrap();
-        let handler = ToolHandler::new(tools);
+        let metrics = std::sync::Arc::new(crate::utils::ServerMetrics::new());
+        let handler = ToolHandler::new(tools, metrics);
         
         // Test get_best_practices tool call
         let args = json!({
@@ -158,7 +163,8 @@ mod tests {
     async fn test_tool_handler_unknown_tool() {
         let server = ArkaftMcpServer::new();
         let tools = server.create_tool_definitions().unwrap();
-        let handler = ToolHandler::new(tools);
+        let metrics = std::sync::Arc::new(crate::utils::ServerMetrics::new());
+        let handler = ToolHandler::new(tools, metrics);
         
         // Test unknown tool call
         let args = json!({});
