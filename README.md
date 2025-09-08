@@ -59,6 +59,17 @@ cargo run
 
 Configure your MCP client to connect to this server. The server implements the standard MCP protocol and can be used with any compatible IDE or development tool.
 
+### With Kiro IDE Agent System
+
+This MCP server is designed to integrate seamlessly with the **Arkaft ADK Agents** system in Kiro IDE, providing:
+
+- **Automated Code Review**: Agents that automatically review Rust files using the `review_rust_file` tool
+- **Architecture Validation**: Real-time validation of ADK patterns using `validate_architecture`
+- **Documentation Assistance**: Context-aware help using the `adk_query` tool
+- **Best Practices Enforcement**: Automated guidance using `get_best_practices`
+
+For setup instructions with Kiro agents, see the [ADK Agents Specification](../.kiro/specs/arkaft-adk-agents/).
+
 ### Example Tool Calls
 
 ```json
@@ -219,6 +230,42 @@ arkaft-mcp-google-adk/
 ├── target/                 # Build artifacts (generated)
 └── README.md               # This documentation
 ```
+
+## Integration with Kiro ADK Agents
+
+This MCP server serves as the knowledge backend for the **Arkaft ADK Agents** system, a comprehensive agent framework that provides intelligent development assistance for Google ADK projects in Kiro IDE.
+
+### Agent System Features
+
+The agent system leverages this MCP server to provide:
+
+- **Automated Workflows**: Hooks that trigger on file saves, component creation, and other development activities
+- **Specialized Agents**: Different agents for code review, architecture validation, documentation, and project assistance
+- **Real-time Guidance**: Immediate feedback and suggestions based on ADK best practices
+- **Seamless Integration**: Works transparently with your existing development workflow
+
+### MCP Configuration for Agents
+
+To use this server with the ADK agents, configure it in your Kiro MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "arkaft-google-adk": {
+      "command": "./arkaft-mcp-google-adk/target/release/arkaft-mcp-google-adk",
+      "args": [],
+      "env": {
+        "RUST_LOG": "info",
+        "ADK_DOCS_VERSION": "latest"
+      },
+      "disabled": false,
+      "autoApprove": ["adk_query", "review_rust_file", "validate_architecture", "get_best_practices"]
+    }
+  }
+}
+```
+
+For complete setup and configuration details, see the [ADK Agents Requirements](../.kiro/specs/arkaft-adk-agents/requirements.md) and [Design Document](../.kiro/specs/arkaft-adk-agents/design.md).
 
 ## Contributing
 
